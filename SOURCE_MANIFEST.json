@@ -6,14 +6,16 @@
     "CONTRIBUTING.md": "66187b38b6b97492df4e93d4918329bace7ccf5e2590ec9286269bf6759d019b",
     "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
     "NOTICE.md": "e1495f47dfddd589f65672d4e2e12c131562c5dc6468c40e864c8b5cfe1595f9",
-    "README.md": "fc63f3a058b70c9662fb29746a75e624ab45f8d26a665af7e977db6084827198",
+    "README.md": "d100c56838d58632c51382bb52c04670247c7564441536f985f52b88dde93596",
     "docs/DEVELOPMENT.md": "f3b4f472282559f71f46c3f8fb0227b11f684770190ebbcd077356b6baec1a07",
     "docs/PUBLICATION_CHECKS.md": "6f0f94f4516cfc8b551625ea6945932b32d2acca4745317ec80fefeb1987da22",
     "docs/USER_GUIDE.md": "476f24089d5b36b2f961eabdc47f6a9d0b3426059cc84b3f611330385192080e",
     "firmware/SINCRIA_Rev2_OK/SINCRIA_Rev2_OK.ino": "3aa59fecc2369999043edf85b82f8099bcdbd79dfbd0421136932d2447242a96",
     "hardware/schematics/README.md": "e46e2531db0345000cbcdf22216f99a72462c9f67eddcd9484bc2176306aa1b2",
-    "images/back.jpg": "03a0b5b7adee514849e8f789afd3f68e6c5d8822a533e6947de9c68e7d811ea9",
-    "images/detail.jpg": "d618a7eb01acd71d7144270a27e72b21aed1cae62a0ab6fc238974fde6dc3424",
-    "images/front.jpg": "2980abd490962fd696c45537de0292df44e7f87eca80ea5b2d55a405fb9b4bcc"
-  }
+    "PHOTO_EDIT_NOTES.md": "99921bf5056e30e137c1a3d88279357c9f4ecc0ce3de92d73f83dec169213425",
+    "images/SINCRIA_angled_IMG_3238_clean.png": "e52d47441e6da97f1d3aebfe8cd7bb8e88f95473f7a5775d34344b53a5d48c55",
+    "images/SINCRIA_front_IMG_3236_clean.png": "b05cf420c916152248fe8419489d88a713eb2f0f1a77b5d6b679ebd1753a412d",
+    "images/SINCRIA_side_IMG_3237_clean.png": "2b21ae2b09d4520767da32befebc22877087bbe2acbeeb74ac404a6673ee883b"
+  },
+  "photo_update_date": "2026-10-28"
 }

@@ -4,7 +4,13 @@
 
 **An open-source Eurorack cellular-automaton sequencer.** An 8 × 8 LED world evolves with Conway-style rules while a 64-step scan turns living cells into rhythmic events. Freeze, rotate, spawn and remove cells to move between repeating structures and evolving patterns.
 
-<p align="center"><img src="images/front.jpg" height="520" alt="SINCRIA actual assembled cellular automata sequencer"> <img src="images/detail.jpg" height="520" alt="SINCRIA hardware photograph"></p>
+<p align="center"><img src="images/SINCRIA_front_IMG_3236_clean.png" height="500" alt="SINCRIA — front, retouched product photograph"> <img src="images/SINCRIA_angled_IMG_3238_clean.png" height="500" alt="SINCRIA — angled, retouched product photograph"></p>
+
+<details><summary>More product views</summary>
+<p align="center"><img src="images/SINCRIA_side_IMG_3237_clean.png" height="360" alt="SINCRIA — side, retouched product photograph"></p>
+</details>
+
+<sub>Product photographs retouched with AI for background and lighting. [Photo notes](PHOTO_EDIT_NOTES.md).</sub>
 
 [User guide](docs/USER_GUIDE.md) · [Build and modify](docs/DEVELOPMENT.md) · [Firmware](firmware/SINCRIA_Rev2_OK/SINCRIA_Rev2_OK.ino) · [Schematics](hardware/schematics/README.md) · [Contribute](CONTRIBUTING.md)
 
