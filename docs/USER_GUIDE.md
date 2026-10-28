@@ -1,6 +1,6 @@
 # SINCRIA user guide
 
-This guide describes the published `SINCRIA_Rev2_OK` sketch, not unimplemented panel possibilities. Electrical input/output ranges and PCB compatibility await the corrected schematic and measurements.
+This guide describes the published `SINCRIA_Rev2_OK` sketch, not unimplemented panel possibilities. The [updated schematic PDF](../hardware/schematics/README.md) supplied on 28 October 2026 is available. Electrical input/output limits and compatibility with a particular assembled PCB still require checking and measurement.
 
 ## First patch
 
