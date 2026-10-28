@@ -37,7 +37,7 @@ Published sketch: **SINCRIA_Rev2_OK**, internally dated **4 August 2025** — th
 
 The code targets an Arduino Nano-style AVR pin layout and a MAX7219 8 × 8 display through **LedControl 1.0.6**. A reproducible **Nano ATmega328P / 16 MHz** build is documented in the [development guide](docs/DEVELOPMENT.md). Confirm the installed MCU and the corrected schematic before uploading to a physical board.
 
-**Corrected schematics, editable CAD and a revision-matched hardware release are awaiting maintainer upload** in [hardware/schematics](hardware/schematics/README.md). Photos show the assembled product; they are not a substitute for verified wiring or electrical limits.
+The **updated schematic PDF supplied on 28 October 2026** is available in [hardware/schematics](hardware/schematics/README.md). Editable native CAD and a matching manufacturing package remain to be added. Photos show the assembled product; consult the schematic for circuit details and distinguish publication from bench verification.
 
 ## Get started
 

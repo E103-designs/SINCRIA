@@ -6,16 +6,19 @@
     "CONTRIBUTING.md": "66187b38b6b97492df4e93d4918329bace7ccf5e2590ec9286269bf6759d019b",
     "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
     "NOTICE.md": "e1495f47dfddd589f65672d4e2e12c131562c5dc6468c40e864c8b5cfe1595f9",
-    "README.md": "d100c56838d58632c51382bb52c04670247c7564441536f985f52b88dde93596",
+    "README.md": "5db4c9bb0efedd1b0411a6e38430d87ddecf58b7ecc5540e56ab2514a8b6dbf7",
     "docs/DEVELOPMENT.md": "f3b4f472282559f71f46c3f8fb0227b11f684770190ebbcd077356b6baec1a07",
-    "docs/PUBLICATION_CHECKS.md": "6f0f94f4516cfc8b551625ea6945932b32d2acca4745317ec80fefeb1987da22",
-    "docs/USER_GUIDE.md": "476f24089d5b36b2f961eabdc47f6a9d0b3426059cc84b3f611330385192080e",
+    "docs/PUBLICATION_CHECKS.md": "cc8b08d5cd8cc7aaebbd34698074f4033a2346319e9014f6bee794d3b829e4f5",
+    "docs/USER_GUIDE.md": "8539308f678acb8ebb0e95dda375865d2ebfe7c928a1441887cbff40ac986285",
     "firmware/SINCRIA_Rev2_OK/SINCRIA_Rev2_OK.ino": "3aa59fecc2369999043edf85b82f8099bcdbd79dfbd0421136932d2447242a96",
-    "hardware/schematics/README.md": "e46e2531db0345000cbcdf22216f99a72462c9f67eddcd9484bc2176306aa1b2",
+    "hardware/schematics/README.md": "bc724f40647e9c3d00a6d6f0f6b46ebcb11dd17d5040465f7f428d8e8b019fa1",
     "PHOTO_EDIT_NOTES.md": "99921bf5056e30e137c1a3d88279357c9f4ecc0ce3de92d73f83dec169213425",
     "images/SINCRIA_angled_IMG_3238_clean.png": "e52d47441e6da97f1d3aebfe8cd7bb8e88f95473f7a5775d34344b53a5d48c55",
     "images/SINCRIA_front_IMG_3236_clean.png": "b05cf420c916152248fe8419489d88a713eb2f0f1a77b5d6b679ebd1753a412d",
-    "images/SINCRIA_side_IMG_3237_clean.png": "2b21ae2b09d4520767da32befebc22877087bbe2acbeeb74ac404a6673ee883b"
+    "images/SINCRIA_side_IMG_3237_clean.png": "2b21ae2b09d4520767da32befebc22877087bbe2acbeeb74ac404a6673ee883b",
+    "hardware/schematics/Schematic_SINCRIA_Rev2.2_2026-10-28.pdf": "3ebda64f568a7e9e86e76cbd791f9328be24cb199534fb50dac218b3049fc6d0",
+    "hardware/schematics/SHA256SUMS.txt": "3c7193fc392a9a1e1c38fffc83ac646e94850d0a5ab7a0f0b3cb6e257c82c31c"
   },
-  "photo_update_date": "2026-10-28"
+  "photo_update_date": "2026-10-28",
+  "schematic_update_date": "2026-10-28"
 }
