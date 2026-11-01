@@ -1,19 +1,30 @@
-# Publication verification — 27 October 2026
+# Handheld Games validation
 
-Recompiled locally with Arduino AVR core 1.8.6, FQBN `arduino:avr:nano:cpu=atmega328` and `--warnings all`. No upload to a physical module was performed.
+Target: Arduino Nano ATmega328P, 16 MHz; Arduino AVR Boards 1.8.6; LedControl 1.0.6.
 
-| Sketch | Result | Flash / 30720 | Static SRAM / 2048 |
-| --- | --- | --- | --- |
-| ALTERIA_ALLROUNDER 2.0.2 | PASS | 29448 | 1094 |
-| ALTERIA_DRUM_LAB 1.0.0 | PASS | 18458 | 966 |
-| SINCRIA_Rev2_OK | PASS | 6520 | 209 |
+The current validation includes AVR compilation for both Nano bootloader configurations and four host suites covering musical and arcade operation under both input profiles. Run `python3 tools/test_host.py` to reproduce the host tests.
 
-The Arduino core reports unused `tag` parameters in `new.cpp`. SINCRIA also reports a signed/unsigned comparison at its clock step check (`currentMillis - lastStepTime >= stepInterval`). Its source is preserved unchanged; future cleanup should use a deliberate unsigned interval type and test timing/rollover.
+## Coverage
 
-All five existing ALTERIA host suites passed under Clang C++11 with ASan/UBSan: Allrounder mode/clock/drum tests, demo regression, Allrounder calibration, DRUM LAB engine/UI/kit tests and DRUM LAB calibration. The included shell runner reproduces those suites.
+- All 64 scan/display positions, cursor mapping, edits, transformations and LOCK behavior.
+- Conway rules, exact short-cycle detection and automatic musical regeneration.
+- Internal/external clock, command filtering, pulse overlap and timer rollover.
+- All eight ALT/SPAWN/KILL start-up combinations, selection qualification, entry animation and release handling.
+- Snake steering, collision, departing-tail handling, wrapping, growth, food placement and full-field victory.
+- Toroidal arcade Life, cursor-only inversion, editing, pause/resume and independent reference grids.
+- Musical outputs remain low during game entry, play and end states.
 
-The complete Allrounder source matches its versioned archive/report hash; the truncated loose local file was not published. DRUM LAB matches its archive/report hash. SINCRIA source was copied unchanged. No new simulation results are claimed beyond the pre-existing detailed reports, and compilation/software tests do not certify analog behavior or PCB compatibility.
+Host suites use the actual sketch with simulated electrical I/O, AddressSanitizer and UndefinedBehaviorSanitizer. They do not measure the physical board. Hardware qualification includes power distribution, switch behavior, input levels, matrix orientation, output loading and maximum stack use.
 
-## Schematic publication update - 28 October 2026
+## Results - 1 November 2026
 
-The updated maintainer-supplied schematic PDF is now in [hardware/schematics](../hardware/schematics/README.md). The original bytes and title blocks were preserved; all pages were opened and rendered for readability. Native CAD and a matching manufacturing package remain pending. Firmware and its recorded software test results were not changed; this upload does not claim new bench verification.
+| Build or suite | Result |
+| --- | --- |
+| Nano ATmega328P | Pass: 8,966 bytes flash; 435 bytes static SRAM |
+| Nano ATmega328P Old Bootloader | Pass: 8,966 bytes flash; 435 bytes static SRAM |
+| Musical suite, input profile 1 | Pass: 6,358 assertions |
+| Arcade suite, input profile 1 | Pass: 79,112 assertions |
+| Musical suite, input profile 0 | Pass: 6,358 assertions |
+| Arcade suite, input profile 0 | Pass: 79,112 assertions |
+
+Total: **170,940 assertions**. Both AVR builds produce the same application HEX, SHA-256 `a55111d2db317e1b19182100608fbd3bd8d66e621e11bc0cfbc99ebac96bb331`. The only compiler warnings are unused `tag` parameters in Arduino core `new.cpp`. Static SRAM excludes runtime stack.
