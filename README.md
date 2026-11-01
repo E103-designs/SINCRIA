@@ -1,52 +1,71 @@
 # SINCRIA
 
-### Let a living pattern write the rhythm.
+### Evolving rhythms. Pixel-sized worlds.
 
-**An open-source Eurorack cellular-automaton sequencer.** An 8 × 8 LED world evolves with Conway-style rules while a 64-step scan turns living cells into rhythmic events. Freeze, rotate, spawn and remove cells to move between repeating structures and evolving patterns.
+**A Eurorack cellular-automaton sequencer with an arcade side.** Build rhythmic patterns from an evolving 8 × 8 LED world, then reboot into **EUROBOY** to play Snake or draw an interactive Game of Life colony on the same module.
 
-<p align="center"><img src="images/SINCRIA_front_IMG_3236_clean.png" height="500" alt="SINCRIA — front, retouched product photograph"> <img src="images/SINCRIA_angled_IMG_3238_clean.png" height="500" alt="SINCRIA — angled, retouched product photograph"></p>
+<p align="center"><img src="images/front.png" height="500" alt="SINCRIA front view"> <img src="images/angled.png" height="500" alt="SINCRIA three-quarter view"></p>
 
-<details><summary>More product views</summary>
-<p align="center"><img src="images/SINCRIA_side_IMG_3237_clean.png" height="360" alt="SINCRIA — side, retouched product photograph"></p>
+[Sequencer guide](docs/USER_GUIDE.md) · [EUROBOY games](docs/EUROBOY.md) · [Firmware](firmware/SINCRIA_Scansione_Righe/SINCRIA_Scansione_Righe.ino) · [Build and modify](docs/DEVELOPMENT.md) · [Schematics](hardware/schematics/README.md)
+
+## One module, three modes
+
+| Mode | What it does | Start-up controls |
+| --- | --- | --- |
+| **SINCRIA sequencer** | A 64-step scan turns living cells into rhythmic triggers | Power on normally |
+| **EUROBOY: Snake** | Steer, collect food and fill the 8 × 8 world | Hold **ALT MODE + SPAWN** during power-on or reset |
+| **EUROBOY: Life** | Draw a colony, animate it, pause and reshape it | Hold **ALT MODE + KILL** during power-on or reset |
+
+Release the buttons after the game entry animation. To return to the sequencer, reboot without a game combination. Holding ALT MODE + SPAWN + KILL also selects the sequencer.
+
+## Let the pattern write the rhythm
+
+SINCRIA scans the physical display from left to right, one row at a time from top to bottom. The inverted cursor marks the **next step**. CLOCK emits a pulse on every step, LIVE/GATE responds to living cells and END marks automatic regeneration.
+
+- Internal clock: **30–300 BPM**, four steps per beat, or an external clock.
+- Conway **B3/S23** evolution after a complete scan; the musical grid wraps across its columns.
+- **NEW GAME** creates a new world; **LOCK** freezes evolution and regeneration.
+- **ROTATE**, **SPAWN** and **KILL** reshape the pattern while it runs.
+- Hold **ALT MODE** to access scan reset, grid shifts and live-cell painting with external clock.
+- Empty patterns and short repeating cycles can regenerate into new material; LOCK keeps a chosen pattern in place.
+
+[Read the sequencer controls and timing details](docs/USER_GUIDE.md).
+
+## EUROBOY: the arcade inside your rack
+
+**Snake** turns the LED matrix into a tiny playfield. Steer with the panel buttons, set the speed with the clock knob and wrap across the edges. Fill all 64 cells to win; press SPAWN after the end screen to restart.
+
+**Interactive Life** gives you an editable pixel colony. Move the cursor, add cells with NEW GAME, erase with ROTATE and switch between INT to evolve and EXT to pause. Unlike the musical grid, this mode wraps across **both axes** and keeps still lifes and oscillators running without random regeneration.
+
+| Direction | Panel control |
+| --- | --- |
+| Up | LOCK |
+| Down | KILL |
+| Left | SPAWN |
+| Right | GATE IN |
+
+Musical outputs remain low throughout both games. Use the module's normal power arrangement; USB powers the Nano but does not necessarily power the complete display/control circuit. [Full arcade guide](docs/EUROBOY.md).
+
+## Install the firmware
+
+Current firmware: **Handheld Games, 28 October 2026**, sketch `SINCRIA_Scansione_Righe`.
+
+1. Download and extract the repository.
+2. Install **LedControl 1.0.6** in Arduino Library Manager.
+3. Open `firmware/SINCRIA_Scansione_Righe/SINCRIA_Scansione_Righe.ino`.
+4. Select **Arduino Nano → ATmega328P**, using Old Bootloader when required by the installed Nano.
+5. Upload, then start normally for sequencing or hold a game combination at reset.
+
+The default input profile is **1**, for the inverting transistor inputs used by Rev2.2/Rev2.3. Profile 0 supports the earlier active-high wiring. Check the [pin map and board profile](docs/DEVELOPMENT.md) before flashing a different revision. The older `SINCRIA_Rev2_OK` sketch remains available for historical reference.
+
+## Open source
+
+Full Arduino source, regression tests, development instructions and circuit schematic are included. Change the automaton, scan order, timing or games using the [development guide](docs/DEVELOPMENT.md). [Validation results](docs/PUBLICATION_CHECKS.md) describe software coverage and resource use.
+
+<details><summary>Side view</summary>
+<p align="center"><img src="images/side.png" height="360" alt="SINCRIA side view"></p>
 </details>
 
-<sub>Product photographs retouched with AI for background and lighting. [Photo notes](PHOTO_EDIT_NOTES.md).</sub>
+**GNU GPL-3.0.** [License](LICENSE) · [Attribution](NOTICE.md) · [Contribute](CONTRIBUTING.md).
 
-[User guide](docs/USER_GUIDE.md) · [Build and modify](docs/DEVELOPMENT.md) · [Firmware](firmware/SINCRIA_Rev2_OK/SINCRIA_Rev2_OK.ino) · [Schematics](hardware/schematics/README.md) · [Contribute](CONTRIBUTING.md)
-
-## A sequencer you can reshape
-
-The display is an 8 × 8 grid. A live cell survives with two or three live neighbours; a dead cell is born with three. The scan reads columns left to right, rows bottom to top. After the end of a scan the generation can evolve; empty or stationary states can cause a new random world. Horizontal neighbours wrap, vertical edges do not: this implementation is not a fully toroidal grid.
-
-Use the internal **60–200 BPM** clock, with sixteenth-note stepping, or advance the scan with an external clock. CLOCK/16ths emits an event for each step; the live-cell/gate path marks living cells; GAME END marks regeneration. LED matrix highlighting inverts the currently scanned cell for visibility.
-
-| Control | Normal action | Alternate action |
-| --- | --- | --- |
-| NewGame | Randomise the world | Restart scan |
-| Lock | Toggle generation evolution lock | Shift cells left, with wrap |
-| Rotate | Rotate the grid 90° clockwise | Shift rows up, with wrap |
-| Spawn | Add a random live cell | With external clock, write live cells along the scan while held |
-| Kill | Remove a random live cell | With external clock, erase cells along the scan while held |
-| AltMode | Hold about 200 ms to toggle alternate controls | Alt LED indicates state |
-
-The firmware's pulse target is 10 ms, serviced in the main loop. These are trigger-like events, not gate lengths tied to the full step. The [user guide](docs/USER_GUIDE.md) explains the exact behavior and current limitations.
-
-## Firmware and hardware baseline
-
-Published sketch: **SINCRIA_Rev2_OK**, internally dated **4 August 2025** — the latest local SINCRIA source found for this publication. There is no embedded semantic version. The more recent PCB assets are labelled **REV2.2 (September 2026)**; the sketch name does not by itself prove compatibility with every board revision.
-
-The code targets an Arduino Nano-style AVR pin layout and a MAX7219 8 × 8 display through **LedControl 1.0.6**. A reproducible **Nano ATmega328P / 16 MHz** build is documented in the [development guide](docs/DEVELOPMENT.md). Confirm the installed MCU and the corrected schematic before uploading to a physical board.
-
-The **updated schematic PDF supplied on 28 October 2026** is available in [hardware/schematics](hardware/schematics/README.md). Editable native CAD and a matching manufacturing package remain to be added. Photos show the assembled product; consult the schematic for circuit details and distinguish publication from bench verification.
-
-## Get started
-
-Download/extract this repository, install **LedControl 1.0.6** from Arduino Library Manager, and open `firmware/SINCRIA_Rev2_OK/SINCRIA_Rev2_OK.ino`. Build for the confirmed Nano processor; Old Bootloader is selected only if your Nano needs it. Start with internal clock, turn Tempo, generate a new world and try Lock/Rotate. Use external pulses held stable for more than 5 ms for the initial clock test, within your board's verified electrical limits.
-
-This publication preserves the original source. It does not add MIDI, pitch CV, pattern storage, a new GateIn handler or a clock reset input. See [known limitations](docs/USER_GUIDE.md#known-limitations) before modifying or extending it.
-
-## Open-source and contributions
-
-Complete editable Arduino source is included. Use [the function map, pin map and build instructions](docs/DEVELOPMENT.md) to change the automaton rules, traversal, clock or controls. Share firmware changes and measured hardware results through pull requests.
-
-Original project materials: **GNU GPL-3.0**. [License](LICENSE) · [Notice](NOTICE.md) · [Contribute](CONTRIBUTING.md). Other E103 projects: [faun](https://github.com/E103-designs/faun) · [ALTERIA](https://github.com/E103-designs/ALTERIA).
+Other E103 projects: [faun](https://github.com/E103-designs/faun) · [ALTERIA](https://github.com/E103-designs/ALTERIA) · [euroTrack](https://github.com/E103-designs/euroTrack).
