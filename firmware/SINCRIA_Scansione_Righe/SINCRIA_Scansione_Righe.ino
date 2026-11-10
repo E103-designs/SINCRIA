@@ -1,13 +1,71 @@
 /*
-  SINCRIA - Eurorack sequencer and EUROBOY arcade modes
-  Handheld Games firmware, 28 October 2026.
-  Arduino Nano / ATmega328P / 16 MHz; LedControl 1.0.6.
-  Boot: ALT+SPAWN = Snake; ALT+KILL = interactive Game of Life.
-  Default boot and ALT+SPAWN+KILL select the Eurorack sequencer.
-  Musical outputs remain LOW in arcade modes.
-  See docs/USER_GUIDE.md, docs/EUROBOY.md and docs/DEVELOPMENT.md
-  for controls, wiring profiles, power requirements and build instructions.
-  SPDX-License-Identifier: GPL-3.0-only
+  S'INCRIA - Regole GoL + Dual Gate Sequencer, 3 novembre 2026
+  Base corrente Handheld Games conservata; giochi al boot invariati.
+  ALT+NEW: regole GoL. ALT+ROTATE: GoL / Dual. ALT+LOCK in Dual: play/pausa.
+  Dual: LOCK su, KILL giu', SPAWN sinistra, ROTATE destra, NEW toggle.
+  ALT+SPAWN: lunghezza fino al cursore; ALT+NEW in Dual: reset playhead.
+  Nel menu regole ALT+KILL lungo 1s: applica regola, vuota e torna al GoL.
+  Base: firmware corrente SINCRIA_Scansione_Righe, scansione e display invariati.
+  Boot ALT+SPAWN: Snake; ALT+KILL: Life interattivo; entrambe: Eurorack.
+  Boot qualificato 140..240 ms; giochi con animazione 320 ms e attesa rilascio.
+  Giochi: LOCK su, KILL giu', SPAWN sinistra, GATE IN destra.
+  Life: NEW crea, ROTATE cancella; INT play / EXT pausa; campo toroidale.
+  Pot: Snake 700..100 ms; Life 2000..100 ms. Nessuna uscita nei giochi.
+  Ingressi jack e pulsanti condivisi: un gate e' indistinguibile da un tasto.
+  NOTA USB: negli schemi Rev2.2/2.3 il MAX usa +5V dal regolatore Eurorack,
+  separato dai +5V USB del Nano. L'uso solo USB richiede che il montaggio
+  alimenti gia' anche matrice e controlli; il firmware non unisce queste reti.
+  Derivato dall'allegato effettivo SINCRIA_Rev2_OK.ino (17781 byte).
+  Arduino Nano CLASSICO, ATmega328P, 16 MHz / 5 V; LedControl 1.0.6.
+
+  PIN: D2 NEW, D3 LIVE gate+LED, D4 END gate+LED, D5 CLOCK gate+LED,
+       D6 LOCK, D7 ROTATE, D8 SPAWN, D9 ALT,
+       D10 MAX CLK, D11 MAX CS, D12 MAX DIN,
+       A0 pot, A1 INT switch, A2 EXT switch,
+       A3 KILL, A4 CLOCK IN (GATE IN), A5 ALT LED.
+  D0/D1, D13, A6/A7 non utilizzati. Tre gate distinti conservati.
+  Profilo 0: Rev2 giugno, comandi/clock ATTIVI ALTI con pulldown esterni.
+  Profilo 1: Rev2.2/2.3, sei ingressi a transistor ATTIVI BASSI.
+  ALT e selettore clock sono ATTIVI ALTI in entrambi i profili.
+  CLOCK IN deve essere gia' condizionato per un ingresso logico 0..5 V.
+  I jack gate richiedono gli stadi di uscita previsti dall'hardware.
+
+  Scansione predefinita: riga per riga, da SX a DX, poi dall'alto in basso.
+  Coordinate registri: display(r,c)=(7-step%8, 7-step/8).
+  Sul montaggio provato, le righe fisiche sono le colonne dei registri.
+  Percorso fisico: prima riga SX->DX, poi riga sotto. Opzione per colonne sotto.
+  Il cursore invertito indica SEMPRE la cella del PROSSIMO clock.
+  Ogni tick: editing, lettura/gate, avanzamento, display del prossimo step.
+  Dopo lo step 63: evoluzione/rigenerazione, salvo LOCK.
+  GoL musicale: regola selezionata, default B3/S23; wrap solo sulle colonne.
+  Mapping originale mantenuto: display(r,c) -> griglia(c,7-r).
+
+  ALT lungo da solo: toggle dopo 200 ms debounced (debounce ALT 50 ms).
+  Comandi NEW/LOCK/ROTATE/SPAWN/KILL: filtro 2 ms, riattivazione minima 30 ms.
+  Accetta gate brevi senza richiedere 50 ms alti; tasto tenuto = un solo evento.
+  Pulsante e jack condividono lo stesso ingresso: il filtro e' un compromesso
+  tra reattivita' ai trigger e soppressione del rimbalzo meccanico.
+  Normale: NEW random+reset, LOCK toggle, ROTATE 90 gradi,
+           SPAWN/KILL una cella casuale per pressione, niente autorepeat.
+  ALT: NEW reset+preview LIVE se viva (senza CLOCK), LOCK shift grid bits,
+       ROTATE shift grid righe; con EXT, SPAWN/KILL editano il cursore
+       e dipingono al clock se tenuti. KILL prevale su SPAWN simultaneo.
+  Le trasformazioni mantengono il verso del firmware originale.
+
+  LOCK congela ANCHE la rigenerazione automatica; editing/NEW restano attivi.
+  Periodi 1..4: confronto ESATTO di griglie, nessuna firma/hash.
+  La ripetizione rilevata viene scansionata per un intero giro prima di END.
+  Previsione estinzione: rigenera senza scansionare una generazione vuota.
+
+  CLOCK interno: 30..300 BPM, 4 step/beat, intervallo 15000/BPM ms.
+  CLOCK esterno: fronte alto dopo 5 ms stabili, basso stabile per riarmare.
+  Al passaggio a EXT un livello gia' alto non produce un tick fantasma.
+  Impulsi in uscita: nominalmente 10 ms, polling non bloccante.
+  Retrigger prima della scadenza estende l'impulso (eventi ravvicinati
+  possono fondersi). Non e' un ingresso per clock audio o impulsi <5 ms.
+  All'avvio selettore valido letto subito; invalido -> EXT in attesa.
+  In marcia stato invalido/intermedio mantiene la modalita' corrente.
+  Nessun uso di Serial, EEPROM, delay(), interrupt custom o heap nel firmware.
 */
 
 // 0 = schema Rev2 16/06/2026; 1 = ingressi invertenti Q1..Q6 Rev2.2/2.3.
@@ -115,7 +173,7 @@ bool displayDirty = true;
 bool displayCacheValid = false;
 
 // Handheld: selezione solo al boot, senza rilevamento dell'alimentazione.
-enum OperatingMode : uint8_t { MODE_EURORACK, MODE_SNAKE, MODE_GAME_OF_LIFE };
+enum OperatingMode : uint8_t { MODE_EURORACK, MODE_SNAKE, MODE_GAME_OF_LIFE, MODE_DUAL };
 OperatingMode operatingMode = MODE_EURORACK;
 bool bootSelecting = true;
 uint32_t bootStartedAt = 0;
@@ -162,6 +220,69 @@ uint8_t lifeCursorY = 3;
 bool lifeCursorInverted = true;
 uint32_t lifeCursorAt = 0;
 
+
+// Regole selezionabili: B/S = maschere dei conteggi 0..8, nessuna stringa in RAM.
+enum GolRule : uint8_t { RULE_CLASSIC, RULE_SINCRIA, RULE_SURVIVAL_234,
+                         RULE_MAZECTRIC, RULE_COAGULATIONS, GOL_RULE_COUNT };
+uint8_t golRuleIndex = RULE_CLASSIC;
+bool holdEmptyGrid = false;
+bool ruleMenuActive = false;
+uint8_t ruleMenuCandidate = RULE_CLASSIC;
+uint32_t ruleMenuBlinkAt = 0;
+bool menuClearTracking = false;
+uint32_t menuClearAt = 0;
+const uint16_t MENU_CLEAR_HOLD_MS = 1000;
+
+// Interlock di rilascio per cambi schermata/modalita'; il CLOCK IN e' escluso.
+bool runtimeReleaseRequired = false;
+bool runtimeReleaseTracking = false;
+uint32_t runtimeReleaseAt = 0;
+uint8_t runtimeChordKey = BUTTON_COUNT;
+bool runtimeAltConsumed = false;
+bool altStateAtPress = false;
+
+// Due pattern di gate da 32 bit, indipendenti dalla colonia GoL.
+uint32_t dualPattern[2] = {};
+uint8_t dualLength[2] = {32, 32};
+uint8_t dualPosition[2] = {};
+uint8_t dualCursorX = 0;
+uint8_t dualCursorY = 0;
+bool dualRunning = false;
+uint32_t dualCursorAt = 0;
+bool dualLengthPreview = false;
+uint32_t dualLengthPreviewAt = 0;
+
+// Dichiarazioni esplicite anche per il banco C++ nativo.
+bool handleRuntimeChords(uint32_t now);
+void advanceDualSequencers(uint32_t now);
+void loopRuleMenu(uint32_t now);
+void loopDualSequencer(uint32_t now);
+void renderRuleMenu(uint32_t now);
+void renderDualSequencer(uint32_t now);
+bool serviceRuntimeRelease(uint32_t now);
+
+uint16_t golBirthMask(uint8_t rule) {
+  switch (rule) {
+    case RULE_SINCRIA: return (1U << 2) | (1U << 3) | (1U << 4);
+    case RULE_COAGULATIONS: return (1U << 3) | (1U << 7) | (1U << 8);
+    default: return 1U << 3;
+  }
+}
+
+uint16_t golSurvivalMask(uint8_t rule) {
+  switch (rule) {
+    case RULE_SINCRIA: return (1U << 0) | (1U << 1);
+    case RULE_SURVIVAL_234: return (1U << 2) | (1U << 3) | (1U << 4);
+    case RULE_MAZECTRIC: return (1U << 1) | (1U << 2) | (1U << 3) | (1U << 4);
+    case RULE_COAGULATIONS:
+      return (1U << 2) | (1U << 3) | (1U << 5) | (1U << 6) | (1U << 7) | (1U << 8);
+    default: return (1U << 2) | (1U << 3);
+  }
+}
+
+bool golRuleResult(bool alive, uint8_t neighbors, uint8_t rule) {
+  return ((alive ? golSurvivalMask(rule) : golBirthMask(rule)) & (1U << neighbors)) != 0;
+}
 
 // Normalizzazione del livello elettrico: gli algoritmi usano true=attivo.
 // Il profilo transistor riguarda NEW/LOCK/ROTATE/SPAWN/KILL e CLOCK IN.
@@ -216,6 +337,7 @@ void evaluateGameState() {
 }
 
 void markManualEdit() {
+  if (anyLiveCell(currentGen)) holdEmptyGrid = false;
   clearHistory();
   evaluateGameState();
   displayDirty = true;
@@ -255,7 +377,7 @@ void computeNextGenerationInto(const byte src[8], byte dst[8]) {
     byte value = 0;
     for (uint8_t col = 0; col < 8; ++col) {
       const uint8_t neighbors = countLiveNeighborsIn(src, row, col);
-      if (neighbors == 3 || (neighbors == 2 && bitRead(src[row], col))) {
+      if (golRuleResult(bitRead(src[row], col) != 0, neighbors, golRuleIndex)) {
         bitSet(value, col);
       }
     }
@@ -292,7 +414,7 @@ void refreshDisplayAtCursor() {
     byte value = 0;
     for (uint8_t col = 0; col < 8; ++col) {
       bool state = getCellDisp(row, col);
-      if (row == getCurrentRow() && col == getCurrentCol()) state = !state;
+      if (!holdEmptyGrid && row == getCurrentRow() && col == getCurrentCol()) state = !state;
       if (state) bitSet(value, col); // stessa disposizione bit della Rev2
     }
     if (!displayCacheValid || displayedRows[row] != value) {
@@ -365,6 +487,7 @@ void paintCursor() {
 }
 
 void finishScan(uint32_t now) {
+  if (holdEmptyGrid && !anyLiveCell(currentGen)) return;
   // LOCK ha priorita' su estinzione e oscillatori, ma non sugli edit manuali.
   if (generationLocked) return;
   evaluateGameState();
@@ -462,8 +585,10 @@ void handleInputs(uint32_t now) {
   if (buttonPressed[BTN_ALT]) {
     altPressedAt = now;
     altLongHandled = false;
+    altStateAtPress = altControlsActive;
   }
-  if (buttonDown[BTN_ALT] && !altLongHandled &&
+  if (handleRuntimeChords(now)) return;
+  if (buttonDown[BTN_ALT] && !runtimeAltConsumed && !altLongHandled &&
       (uint32_t)(now - altPressedAt) >= ALT_LONG_PRESS_MS) {
     altLongHandled = true;
     altControlsActive = !altControlsActive;
@@ -505,7 +630,8 @@ void serviceExternalClock(uint32_t now) {
   if (!externalStable) externalArmed = true;
   else if (externalArmed) {
     externalArmed = false;
-    advanceSequencer(now);
+    if (operatingMode == MODE_DUAL) advanceDualSequencers(now);
+    else advanceSequencer(now);
   }
 }
 
@@ -557,6 +683,7 @@ void loopEurorack() {
   servicePulses(now); // spegne gli impulsi scaduti prima di un nuovo tick
   updateClockMode(now);
   handleInputs(now); // gli edit confermati precedono il clock dello stesso giro
+  if (ruleMenuActive || operatingMode != MODE_EURORACK || runtimeReleaseRequired) return;
   if ((uint32_t)(now - lastPotSample) >= POT_SAMPLE_MS) {
     lastPotSample = now;
     updateBPM();
@@ -806,7 +933,7 @@ void serviceSnake(uint32_t now) {
 }
 
 // B3/S23 completamente toroidale SOLO per Life handheld.
-// La funzione computeNextGenerationInto musicale non viene modificata.
+// Indipendente dalla regola selezionata per il GoL musicale.
 void computeToroidalGenerationInto(const byte src[8], byte dst[8]) {
   for (uint8_t row = 0; row < 8; ++row) {
     byte value = 0;
@@ -899,11 +1026,306 @@ void loopHandheld(uint32_t now) {
   else serviceHandheldLife(now);
 }
 
+// --- Selettore regole e dual gate sequencer ---
+void stopMusicalPulses() {
+  for (uint8_t i = 0; i < PULSE_COUNT; ++i) {
+    pulseActive[i] = false;
+    digitalWrite(pulsePins[i], LOW);
+  }
+}
+
+void syncRuntimeInputs(uint32_t now) {
+  for (uint8_t i = 0; i < BUTTON_COUNT; ++i) {
+    const bool active = readButtonActive(i);
+    buttonRaw[i] = buttonDown[i] = active;
+    buttonPressed[i] = false;
+    buttonChangedAt[i] = now;
+    buttonAcceptedAt[i] = now;
+    buttonHasTriggered[i] = active;
+  }
+  for (uint8_t i = 0; i < HH_BUTTON_COUNT; ++i) {
+    const bool active = readCommandActive(handheldPins[i]);
+    handheldInputs[i].raw = handheldInputs[i].down = active;
+    handheldInputs[i].pressed = false;
+    handheldInputs[i].changedAt = now;
+  }
+  altLongHandled = true;
+  altPressedAt = now;
+  runtimeAltConsumed = true;
+  runtimeChordKey = BUTTON_COUNT;
+}
+
+void requireRuntimeRelease(uint32_t now) {
+  runtimeReleaseRequired = true;
+  runtimeReleaseTracking = false;
+  syncRuntimeInputs(now);
+}
+
+bool serviceRuntimeRelease(uint32_t now) {
+  if (!runtimeReleaseRequired) return false;
+  bool released = true;
+  // Non attendere il jack CLOCK IN: un clock esterno continuo deve restare usabile.
+  for (uint8_t i = 0; i < BUTTON_COUNT; ++i) {
+    if (readButtonActive(i)) released = false;
+  }
+  if (!released) runtimeReleaseTracking = false;
+  else if (!runtimeReleaseTracking) {
+    runtimeReleaseTracking = true;
+    runtimeReleaseAt = now;
+  } else if ((uint32_t)(now - runtimeReleaseAt) >= ALT_DEBOUNCE_MS) {
+    runtimeReleaseRequired = false;
+    runtimeReleaseTracking = false;
+    syncRuntimeInputs(now);
+    runtimeAltConsumed = false;
+    lastStepTime = now;
+    resetExternalClock(now);
+    displayDirty = true;
+  }
+  servicePulses(now);
+  if (ruleMenuActive) renderRuleMenu(now);
+  else if (operatingMode == MODE_DUAL) renderDualSequencer(now);
+  else refreshDisplayAtCursor();
+  return true;
+}
+
+void openRuleMenu(uint32_t now) {
+  ruleMenuActive = true;
+  ruleMenuCandidate = golRuleIndex;
+  ruleMenuBlinkAt = now;
+  menuClearTracking = false;
+  stopMusicalPulses();
+  requireRuntimeRelease(now);
+  renderRuleMenu(now);
+}
+
+void commitRuleMenu(bool empty, uint32_t now) {
+  golRuleIndex = ruleMenuCandidate;
+  currentStep = 0;
+  if (empty) {
+    memset(currentGen, 0, sizeof(currentGen));
+    holdEmptyGrid = true;
+    markManualEdit();
+  } else generateRandomGeneration();
+  ruleMenuActive = false;
+  menuClearTracking = false;
+  lastStepTime = now;
+  resetExternalClock(now);
+  stopMusicalPulses();
+  displayDirty = true;
+  requireRuntimeRelease(now);
+  refreshDisplayAtCursor();
+}
+
+void renderRuleMenu(uint32_t now) {
+  byte frame[8] = {};
+  frame[0] = (1U << GOL_RULE_COUNT) - 1U;
+  // Cinque LED in alto a SX; il selezionato lampeggia, gli altri restano accesi.
+  if ((uint32_t)(now - ruleMenuBlinkAt) % 500U < 180U) {
+    bitClear(frame[0], ruleMenuCandidate);
+  }
+  writeHandheldFrame(frame);
+}
+
+void loopRuleMenu(uint32_t now) {
+  servicePulses(now);
+  updateButtons(now); // ALT debounced, senza eseguire le vecchie azioni
+  updateHandheldInputs(now);
+  const bool alt = buttonDown[BTN_ALT] && readButtonActive(BTN_ALT);
+  const bool kill = handheldInputs[HH_DOWN].down && readCommandActive(KILL_CELL_PIN);
+  if (alt && kill) {
+    if (!menuClearTracking) {
+      menuClearTracking = true;
+      menuClearAt = now;
+    } else if ((uint32_t)(now - menuClearAt) >= MENU_CLEAR_HOLD_MS) {
+      commitRuleMenu(true, now);
+      return;
+    }
+  } else menuClearTracking = false;
+
+  if (!readButtonActive(BTN_ALT)) {
+    if (handheldInputs[HH_UP].pressed || handheldInputs[HH_LEFT].pressed) {
+      ruleMenuCandidate = (ruleMenuCandidate + GOL_RULE_COUNT - 1) % GOL_RULE_COUNT;
+      ruleMenuBlinkAt = now;
+    } else if (handheldInputs[HH_DOWN].pressed || handheldInputs[HH_ERASE].pressed) {
+      // ROTATE = destra: il jack GATE IN non sposta la scelta col clock esterno.
+      ruleMenuCandidate = (ruleMenuCandidate + 1) % GOL_RULE_COUNT;
+      ruleMenuBlinkAt = now;
+    }
+    if (handheldInputs[HH_CREATE].pressed) {
+      commitRuleMenu(false, now);
+      return;
+    }
+  }
+  renderRuleMenu(now);
+}
+
+void toggleDualMode(uint32_t now) {
+  stopMusicalPulses();
+  ruleMenuActive = false;
+  if (operatingMode == MODE_DUAL) {
+    operatingMode = MODE_EURORACK;
+    digitalWrite(ALT_MODE_LED_PIN, altControlsActive ? HIGH : LOW);
+    displayDirty = true;
+  } else {
+    operatingMode = MODE_DUAL;
+    dualRunning = false; // ingresso sempre in pausa, pattern e lunghezze conservati
+    dualCursorAt = now;
+    dualLengthPreview = false;
+    digitalWrite(ALT_MODE_LED_PIN, LOW);
+  }
+  lastStepTime = now;
+  resetExternalClock(now);
+  requireRuntimeRelease(now);
+  if (operatingMode == MODE_DUAL) renderDualSequencer(now);
+  else refreshDisplayAtCursor();
+}
+
+void resetDualPlayheads(uint32_t now) {
+  dualPosition[0] = dualPosition[1] = 0;
+  lastStepTime = now;
+  resetExternalClock(now);
+  stopMusicalPulses();
+}
+
+void setDualLengthAtCursor(uint32_t now) {
+  const uint8_t lane = dualCursorY / 4;
+  dualLength[lane] = (dualCursorY % 4) * 8 + dualCursorX + 1;
+  if (dualPosition[lane] >= dualLength[lane]) dualPosition[lane] = 0;
+  dualLengthPreview = true;
+  dualLengthPreviewAt = now;
+}
+
+bool handleRuntimeChords(uint32_t now) {
+  const bool altRaw = readButtonActive(BTN_ALT);
+  if (!altRaw) runtimeAltConsumed = false;
+  if (runtimeChordKey < BUTTON_COUNT) {
+    if (buttonDown[BTN_ALT] && buttonDown[runtimeChordKey]) return true;
+    runtimeChordKey = BUTTON_COUNT;
+  }
+  if (!altRaw) return false;
+  uint8_t key = BUTTON_COUNT;
+  if (readButtonActive(BTN_ROTATE)) key = BTN_ROTATE;
+  else if (readButtonActive(BTN_NEW)) key = BTN_NEW;
+  else if (operatingMode == MODE_DUAL && readButtonActive(BTN_LOCK)) key = BTN_LOCK;
+  else if (operatingMode == MODE_DUAL && readButtonActive(BTN_SPAWN)) key = BTN_SPAWN;
+  if (key == BUTTON_COUNT) return false;
+
+  // La lettura raw sopprime subito NEW/ROTATE mentre ALT completa i suoi 50 ms.
+  runtimeAltConsumed = true;
+  altLongHandled = true;
+  if (!buttonDown[BTN_ALT] || !buttonDown[key]) return true;
+  if (!buttonPressed[BTN_ALT] && !buttonPressed[key]) return true;
+  runtimeChordKey = key;
+  // Una combo non deve cambiare il latch ALT, neppure se ALT e' stato premuto
+  // abbastanza in anticipo da aver gia' eseguito il suo toggle lungo.
+  if (operatingMode == MODE_EURORACK) {
+    altControlsActive = altStateAtPress;
+    digitalWrite(ALT_MODE_LED_PIN, altControlsActive ? HIGH : LOW);
+  }
+  if (key == BTN_ROTATE) toggleDualMode(now);
+  else if (operatingMode == MODE_EURORACK && key == BTN_NEW) openRuleMenu(now);
+  else if (operatingMode == MODE_DUAL) {
+    if (key == BTN_NEW) resetDualPlayheads(now);
+    else if (key == BTN_SPAWN) setDualLengthAtCursor(now);
+    else if (key == BTN_LOCK) {
+      dualRunning = !dualRunning;
+      digitalWrite(ALT_MODE_LED_PIN, dualRunning ? HIGH : LOW);
+      lastStepTime = now;
+      resetExternalClock(now);
+      if (!dualRunning) stopMusicalPulses();
+    }
+  }
+  return true;
+}
+
+void advanceDualSequencers(uint32_t now) {
+  if (!dualRunning) return;
+  startPulse(PULSE_CLOCK, now);
+  for (uint8_t lane = 0; lane < 2; ++lane) {
+    if (dualPattern[lane] & ((uint32_t)1 << dualPosition[lane])) {
+      startPulse(lane == 0 ? PULSE_LIVE : PULSE_END, now);
+    }
+    if (++dualPosition[lane] >= dualLength[lane]) dualPosition[lane] = 0;
+  }
+}
+
+void renderDualSequencer(uint32_t now) {
+  byte frame[8] = {};
+  const bool cursorBlink = (uint32_t)(now - dualCursorAt) % 720U < 120U;
+  const bool playBlink = (uint32_t)(now - dualCursorAt) % 480U < 240U;
+  if (dualLengthPreview && (uint32_t)(now - dualLengthPreviewAt) >= 700U) {
+    dualLengthPreview = false;
+  }
+  for (uint8_t lane = 0; lane < 2; ++lane) {
+    for (uint8_t step = 0; step < 32; ++step) {
+      const uint8_t x = step % 8;
+      const uint8_t y = lane * 4 + step / 8;
+      bool state = step < dualLength[lane] &&
+          ((dualPattern[lane] & ((uint32_t)1 << step)) != 0);
+      if (dualLengthPreview) state = step < dualLength[lane];
+      else {
+        // Non fare due XOR se cursore e playhead occupano lo stesso pixel.
+        const bool overlay = (cursorBlink && x == dualCursorX && y == dualCursorY) ||
+            (dualRunning && playBlink && step == dualPosition[lane]);
+        if (overlay) state = !state;
+      }
+      if (state) bitSet(frame[y], x);
+    }
+  }
+  writeHandheldFrame(frame);
+}
+
+void loopDualSequencer(uint32_t now) {
+  servicePulses(now);
+  updateClockMode(now);
+  updateButtons(now);
+  updateHandheldInputs(now);
+  const bool chord = handleRuntimeChords(now);
+  if (operatingMode != MODE_DUAL || runtimeReleaseRequired) return;
+  if (!chord) {
+    bool moved = false;
+    if (handheldInputs[HH_UP].pressed) {
+      dualCursorY = (dualCursorY + 7) % 8; moved = true;
+    } else if (handheldInputs[HH_DOWN].pressed) {
+      dualCursorY = (dualCursorY + 1) % 8; moved = true;
+    } else if (handheldInputs[HH_LEFT].pressed) {
+      dualCursorX = (dualCursorX + 7) % 8; moved = true;
+    } else if (handheldInputs[HH_ERASE].pressed) {
+      dualCursorX = (dualCursorX + 1) % 8; moved = true;
+    }
+    if (moved) dualCursorAt = now;
+    if (handheldInputs[HH_CREATE].pressed) {
+      const uint8_t lane = dualCursorY / 4;
+      const uint8_t step = (dualCursorY % 4) * 8 + dualCursorX;
+      dualPattern[lane] ^= (uint32_t)1 << step;
+    }
+  }
+  if ((uint32_t)(now - lastPotSample) >= POT_SAMPLE_MS) {
+    lastPotSample = now;
+    updateBPM();
+  }
+  if (dualRunning) {
+    if (clockMode == CLOCK_INTERNAL) {
+      if ((uint32_t)(now - lastStepTime) >= stepInterval) {
+        lastStepTime = now;
+        advanceDualSequencers(now);
+      }
+    } else serviceExternalClock(now);
+  }
+  renderDualSequencer(now);
+  servicePulses(millis());
+}
+
 void loop() {
   if (bootSelecting) {
     serviceBootSelection(millis());
     return;
   }
-  if (operatingMode == MODE_EURORACK) loopEurorack();
-  else loopHandheld(millis());
+  if (operatingMode == MODE_EURORACK || operatingMode == MODE_DUAL) {
+    const uint32_t now = millis();
+    if (serviceRuntimeRelease(now)) return;
+    if (ruleMenuActive) loopRuleMenu(now);
+    else if (operatingMode == MODE_DUAL) loopDualSequencer(now);
+    else loopEurorack();
+  } else loopHandheld(millis());
 }
