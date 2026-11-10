@@ -1,6 +1,6 @@
 # EUROBOY arcade modes
 
-EUROBOY brings two pixel games to SINCRIA's existing 8 × 8 display and controls: Snake and interactive Conway's Game of Life. Both are included in the Handheld Games firmware dated 28 October 2026.
+EUROBOY brings two pixel games to SINCRIA's existing 8 × 8 display and controls: Snake and interactive Conway's Game of Life. Both remain included in the GoL rules + Dual Gate Sequencer firmware dated 3 November 2026. The musical rule selector does not change the arcade Life rule.
 
 ## Choose a mode
 
@@ -23,6 +23,8 @@ Mode selection takes 140–240 ms after setup, in addition to bootloader time. T
 | Down | KILL | A3 |
 | Left | SPAWN | D8 |
 | Right | GATE IN | A4 |
+
+This game mapping uses GATE IN for right. In Dual and the new musical rule screen, ROTATE is right and GATE IN remains clock-only.
 
 Each press produces one direction command, with 30 ms debounce and no automatic button repeat. ALT does not invoke sequencer functions inside a game.
 

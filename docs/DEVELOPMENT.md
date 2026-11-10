@@ -1,6 +1,6 @@
 # Build and modify SINCRIA
 
-Current sketch: `firmware/SINCRIA_Scansione_Righe/SINCRIA_Scansione_Righe.ino`, Handheld Games firmware dated 28 October 2026. Target: classic Arduino Nano, **ATmega328P / 16 MHz**.
+Current sketch: `firmware/SINCRIA_Scansione_Righe/SINCRIA_Scansione_Righe.ino`, GoL rules + Dual Gate Sequencer firmware dated 3 November 2026. Target: classic Arduino Nano, **ATmega328P / 16 MHz**.
 
 ## Build
 
@@ -54,7 +54,10 @@ Choose the input profile for the actual circuit. The firmware does not infer wir
 | --- | --- |
 | Mode dispatch | `setup`, `loop`, `serviceBootSelection`, `initializeEurorack` |
 | Musical scan | `loopEurorack`, `advanceSequencer`, `finishScan` |
-| Musical automaton | `computeNextGenerationInto`, `countLiveNeighborsIn`, history and oscillation helpers |
+| Musical automaton | `golBirthMask`, `golSurvivalMask`, `golRuleResult`, `computeNextGenerationInto`, history and oscillation helpers |
+| Rule menu and persistent empty field | `openRuleMenu`, `loopRuleMenu`, `commitRuleMenu`, `holdEmptyGrid` |
+| Dual gate sequencer | `toggleDualMode`, `loopDualSequencer`, `advanceDualSequencers`, `setDualLengthAtCursor` |
+| Chords and release interlock | `handleRuntimeChords`, `syncRuntimeInputs`, `serviceRuntimeRelease` |
 | Buttons and clock | `handleInputs`, `updateButtons`, `updateClockMode`, `serviceExternalClock` |
 | Output events | `startPulse`, `servicePulses` |
 | Musical display | `getCellDisp`, `setCellDisp`, `refreshDisplayAtCursor` |
@@ -68,10 +71,14 @@ The musical cursor always represents the next step. Keep display transforms cons
 python3 tools/test_host.py
 ```
 
-The runner compiles the actual sketch with simulated Arduino/LedControl I/O under Clang C++11, ASan and UBSan. It runs musical and handheld suites for both input profiles; temporary binaries are removed automatically. Set `CXX` to select another compatible compiler.
+The runner compiles the actual sketch with simulated Arduino/LedControl I/O under Clang C++11, ASan and UBSan. It runs musical, handheld and rules/dual suites for both input profiles; temporary binaries are removed automatically. Set `CXX` to select another compatible compiler.
 
-Keep the firmware non-blocking. Use rollover-safe unsigned timing; preserve the independent command/game debounce paths, output pulse service and boot-only mode selection. Game modes must leave all three musical outputs low. The sketch uses static buffers, with no EEPROM or dynamic allocation. Rebuild AVR and check static SRAM/stack after changes.
+Keep the firmware non-blocking. Use rollover-safe unsigned timing; preserve the independent command/game debounce paths, output pulse service, boot-only game selection and runtime GoL/Dual switching. Game modes must leave all three musical outputs low. The sketch uses static buffers, with no EEPROM or dynamic allocation. Rebuild AVR and check static SRAM/stack after changes.
 
-Validate all 64 display positions, scan order, edits and rotations, short pattern detection, clock switching, pulses/retrigger, game boot combinations, Snake collision/wrapping and Life pause/editing. Physical validation covers supply routing, input polarity, real switch bounce, output loading and worst-case stack.
+The rule table is Classic B3/S23, SINCRIA B234/S01, B3/S234, Mazectric B3/S1234 and Coagulations B378/S235678. Musical boundary handling remains unchanged; arcade Life stays B3/S23 and fully toroidal. Rule changes reset musical history. Explicit clearing holds the empty field until an actual cell creation or random generation.
+
+Dual uses two 32-bit patterns, independent lengths and playheads, with the existing clock/pulse infrastructure. A4 remains clock-only in the new musical screens; ROTATE supplies rightward navigation. The games retain A4 for rightward movement.
+
+Validate all 64 display positions, scan order, edits and rotations, short pattern detection, clock switching, pulses/retrigger, game boot combinations, Snake collision/wrapping and Life pause/editing. Also validate combo order/bounce, menu confirmation, empty-field hold, independent lengths, dual gate routing and source-clock changes. Physical validation covers supply routing, input polarity, real switch bounce, output loading and worst-case stack.
 
 See [validation results](PUBLICATION_CHECKS.md), [game controls](EUROBOY.md) and [contribution guidelines](../CONTRIBUTING.md).

@@ -1,30 +1,41 @@
-# Handheld Games validation
+# Firmware validation
 
-Target: Arduino Nano ATmega328P, 16 MHz; Arduino AVR Boards 1.8.6; LedControl 1.0.6.
+Current firmware: **GoL rules + Dual Gate Sequencer, 3 November 2026**. Publication checks: **10 November 2026**. Target: classic Arduino Nano ATmega328P, 16 MHz, Arduino AVR Boards 1.8.6 and LedControl 1.0.6.
 
-The current validation includes AVR compilation for both Nano bootloader configurations and four host suites covering musical and arcade operation under both input profiles. Run `python3 tools/test_host.py` to reproduce the host tests.
+The project owner reported successful testing of this revision on the module on 10 November 2026. The results below are the reproducible build and simulated-I/O checks; no additional electrical measurements were performed for this publication.
 
-## Coverage
+## Published package checks
 
-- All 64 scan/display positions, cursor mapping, edits, transformations and LOCK behavior.
-- Conway rules, exact short-cycle detection and automatic musical regeneration.
-- Internal/external clock, command filtering, pulse overlap and timer rollover.
-- All eight ALT/SPAWN/KILL start-up combinations, selection qualification, entry animation and release handling.
-- Snake steering, collision, departing-tail handling, wrapping, growth, food placement and full-field victory.
-- Toroidal arcade Life, cursor-only inversion, editing, pause/resume and independent reference grids.
-- Musical outputs remain low during game entry, play and end states.
-
-Host suites use the actual sketch with simulated electrical I/O, AddressSanitizer and UndefinedBehaviorSanitizer. They do not measure the physical board. Hardware qualification includes power distribution, switch behavior, input levels, matrix orientation, output loading and maximum stack use.
-
-## Results - 1 November 2026
+The published source is byte-for-byte identical to the firmware confirmed by the owner. SHA-256: `573f99bfd9ff26ea6c6b0ee718f7232e3f48f60cf9cb507a7c48c6378793c272`.
 
 | Build or suite | Result |
 | --- | --- |
-| Nano ATmega328P | Pass: 8,966 bytes flash; 435 bytes static SRAM |
-| Nano ATmega328P Old Bootloader | Pass: 8,966 bytes flash; 435 bytes static SRAM |
-| Musical suite, input profile 1 | Pass: 6,358 assertions |
-| Arcade suite, input profile 1 | Pass: 79,112 assertions |
-| Musical suite, input profile 0 | Pass: 6,358 assertions |
-| Arcade suite, input profile 0 | Pass: 79,112 assertions |
+| Nano ATmega328P | Pass: 12,182 bytes Flash; 488 bytes static SRAM |
+| Nano ATmega328P Old Bootloader | Pass: 12,182 bytes Flash; 488 bytes static SRAM |
+| Musical suite, profile 1 | 6,358 assertions |
+| Arcade suite, profile 1 | 79,112 assertions |
+| Rules/Dual suite, profile 1 | 10,509 assertions |
+| Musical suite, profile 0 | 6,358 assertions |
+| Arcade suite, profile 0 | 79,112 assertions |
+| Rules/Dual suite, profile 0 | 10,509 assertions |
 
-Total: **170,940 assertions**. Both AVR builds produce the same application HEX, SHA-256 `a55111d2db317e1b19182100608fbd3bd8d66e621e11bc0cfbc99ebac96bb331`. The only compiler warnings are unused `tag` parameters in Arduino core `new.cpp`. Static SRAM excludes runtime stack.
+Total: **191,958 assertions**. Both AVR builds use the default input profile 1 and produce the same application HEX, SHA-256 `75b518e5ee53c3e815203008c09531c57192d4a65b34694691ec5b68f036dac0`. Static SRAM leaves 1,560 bytes for stack/local use; it is not a measured maximum-stack result. No sketch warnings were emitted in these publication builds.
+
+Run `python3 tools/test_host.py` from repository root. Clang C++11 compiles the actual sketch with simulated Arduino/LedControl I/O, AddressSanitizer and UndefinedBehaviorSanitizer. Temporary host binaries are removed automatically.
+
+## Coverage
+
+- Original musical scan/display mapping, edits, ALT controls, transformations, LOCK, pattern history and regeneration.
+- Internal/external clock, fast command filters, pulse expiry/retrigger and rollover-safe timers.
+- All five rule masks; all 512 local configurations per rule; 500 further boards per rule against an independent reference.
+- Musical rule selection independent of fully toroidal, classic arcade Life.
+- ALT chord order, early ALT press, bounce and held controls without duplicate actions or unwanted latch changes.
+- Five-LED menu, clock input excluded from navigation, confirmation without click-through and reset/history handling.
+- Long clear command and 128 subsequent clocks with no random repopulation, LIVE or END; first actual cell creation releases the hold.
+- Every dual display position, lengths 1-32, hidden-but-preserved steps, editing during playback and separate GoL state.
+- 150 clocks with lengths 3 and 5: independent playheads and gate values checked at each tick.
+- Dual pause/resume with an already-active clock, common reset, 10 ms pulses, mode changes and timer rollover.
+- Existing game boot combinations, release handling, Snake wrapping/collision/growth/victory and interactive Life editing/pause/evolution.
+- Musical outputs remain low throughout arcade operation.
+
+Hardware details, polarity and supply routing are documented in the [schematic](../hardware/schematics/README.md). The owner report does not replace measurements of levels, loading or worst-case stack under every patch.
