@@ -8,7 +8,7 @@ tests = root / "firmware/SINCRIA_Scansione_Righe/tests"
 cxx = os.environ.get("CXX", "clang++")
 with tempfile.TemporaryDirectory(prefix="sincria-tests-") as build:
     for profile in (1, 0):
-        for suite in ("legacy", "handheld"):
+        for suite in ("legacy", "handheld", "rules_dual"):
             binary = Path(build) / f"{suite}-{profile}"
             subprocess.run([cxx, "-std=c++11", f"-DSINCRIA_INVERTED_INPUTS={profile}",
                 "-Wall", "-Wextra", "-Werror", "-fsanitize=address,undefined",
