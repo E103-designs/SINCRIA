@@ -11,11 +11,9 @@ int pinLevels[22]={}, pinModes[22], rises[22]={}, potValue=114;
 #include "../SINCRIA_Scansione_Righe.ino"
 void setupForLegacyTest() {
  setup();
-#ifndef TEST_BASELINE
  bootSelecting=false;
  operatingMode=MODE_EURORACK;
  initializeEurorack();
-#endif
 }
 
 unsigned checks=0;
